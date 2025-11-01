@@ -96,7 +96,7 @@ jobs:
           # Extract snapshot ID from packer output
           SNAPSHOT_ID=$(grep -oP 'Snapshot ID: \K\d+' packer-output.log || echo "N/A")
           SNAPSHOT_NAME=$(grep -oP 'Snapshot name: \K.*' packer-output.log || echo "N/A")
-          
+
           echo "snapshot_id=$SNAPSHOT_ID" >> $GITHUB_OUTPUT
           echo "snapshot_name=$SNAPSHOT_NAME" >> $GITHUB_OUTPUT
 

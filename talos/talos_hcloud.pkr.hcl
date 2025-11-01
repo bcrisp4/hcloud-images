@@ -45,9 +45,9 @@ build {
 
   provisioner "shell" {
     inline = [
-      "apt-get install -y wget",
+      "apt-get install -y wget zstd",
       "wget -O /tmp/talos.raw.xz ${local.image}",
-      "xz -d -c /tmp/talos.raw.xz | dd of=/dev/sda && sync",
+      "unzstd --stdout /tmp/talos.raw.xz | dd of=/dev/sda && sync",
     ]
   }
 }

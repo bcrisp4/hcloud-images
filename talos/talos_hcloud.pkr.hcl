@@ -14,8 +14,15 @@ variable "talos_version" {
   default = "v1.6.0"
 }
 
+variable "build_timestamp" {
+  type        = string
+  description = "Build timestamp to ensure unique snapshot names"
+  default     = ""
+}
+
 locals {
-  image = "https://github.com/siderolabs/talos/releases/download/${var.talos_version}/hcloud-amd64.raw.xz"
+  image         = "https://github.com/siderolabs/talos/releases/download/${var.talos_version}/hcloud-amd64.raw.xz"
+  snapshot_name = var.build_timestamp != "" ? "talos-${var.talos_version}-${var.build_timestamp}" : "talos-${var.talos_version}"
 }
 
 source "hcloud" "talos" {
@@ -25,7 +32,7 @@ source "hcloud" "talos" {
   server_type  = "cx22"
   ssh_username = "root"
 
-  snapshot_name = "talos system disk ${var.talos_version}"
+  snapshot_name = local.snapshot_name
   snapshot_labels = {
     type    = "infra",
     os      = "talos",

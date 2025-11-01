@@ -77,16 +77,27 @@ jobs:
         working-directory: talos
         run: packer init talos_hcloud.pkr.hcl
 
+      - name: Generate build timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
       - name: Build image
         working-directory: talos
         env:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: |
+          set -euo pipefail
           if [ -n "${{ inputs.talos_version }}" ]; then
-            packer build -var "talos_version=${{ inputs.talos_version }}" talos_hcloud.pkr.hcl | tee packer-output.log
+            packer build \
+              -var "talos_version=${{ inputs.talos_version }}" \
+              -var "build_timestamp=${{ steps.timestamp.outputs.value }}" \
+              talos_hcloud.pkr.hcl | tee packer-output.log
           else
-            packer build talos_hcloud.pkr.hcl | tee packer-output.log
+            packer build \
+              -var "build_timestamp=${{ steps.timestamp.outputs.value }}" \
+              talos_hcloud.pkr.hcl | tee packer-output.log
           fi
+          exit ${PIPESTATUS[0]}
 
       - name: Extract snapshot info
         if: success()

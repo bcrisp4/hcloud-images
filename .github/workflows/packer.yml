@@ -87,7 +87,7 @@ jobs:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: |
           set -euo pipefail
-          
+
           # Run packer and capture output and exit code
           if [ -n "${{ inputs.talos_version }}" ]; then
             packer build \
@@ -101,13 +101,13 @@ jobs:
               talos_hcloud.pkr.hcl 2>&1 | tee packer-output.log
             PACKER_EXIT_CODE=${PIPESTATUS[0]}
           fi
-          
+
           # Check if build was successful
           if [ $PACKER_EXIT_CODE -ne 0 ]; then
             echo "::error::Packer build failed with exit code $PACKER_EXIT_CODE"
             exit $PACKER_EXIT_CODE
           fi
-          
+
           # Verify artifacts were created
           if grep -q "Builds finished but no artifacts were created" packer-output.log; then
             echo "::error::Packer build completed but no artifacts were created"

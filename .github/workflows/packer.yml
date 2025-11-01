@@ -83,23 +83,33 @@ jobs:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: |
           if [ -n "${{ inputs.talos_version }}" ]; then
-            packer build -var "talos_version=${{ inputs.talos_version }}" talos_hcloud.pkr.hcl
+            packer build -var "talos_version=${{ inputs.talos_version }}" talos_hcloud.pkr.hcl | tee packer-output.log
           else
-            packer build talos_hcloud.pkr.hcl
+            packer build talos_hcloud.pkr.hcl | tee packer-output.log
           fi
+
+      - name: Extract snapshot info
+        if: success()
+        id: snapshot
+        working-directory: talos
+        run: |
+          # Extract snapshot ID from packer output
+          SNAPSHOT_ID=$(grep -oP 'Snapshot ID: \K\d+' packer-output.log || echo "N/A")
+          SNAPSHOT_NAME=$(grep -oP 'Snapshot name: \K.*' packer-output.log || echo "N/A")
+          
+          echo "snapshot_id=$SNAPSHOT_ID" >> $GITHUB_OUTPUT
+          echo "snapshot_name=$SNAPSHOT_NAME" >> $GITHUB_OUTPUT
 
       - name: Build summary
         if: success()
         run: |
-          echo "### ✅ Packer build successful" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Talos Image Built Successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Talos Version:** ${{ inputs.talos_version || 'default' }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Build failure
-        if: failure()
-        run: |
-          echo "### ❌ Packer build failed" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Talos Version | ${{ inputs.talos_version || 'v1.6.0 (default)' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Snapshot Name | ${{ steps.snapshot.outputs.snapshot_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Snapshot ID | ${{ steps.snapshot.outputs.snapshot_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          echo "The image is now available in your Hetzner Cloud project." >> $GITHUB_STEP_SUMMARY

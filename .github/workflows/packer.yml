@@ -87,17 +87,32 @@ jobs:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: |
           set -euo pipefail
+          
+          # Run packer and capture output and exit code
           if [ -n "${{ inputs.talos_version }}" ]; then
             packer build \
               -var "talos_version=${{ inputs.talos_version }}" \
               -var "build_timestamp=${{ steps.timestamp.outputs.value }}" \
-              talos_hcloud.pkr.hcl | tee packer-output.log
+              talos_hcloud.pkr.hcl 2>&1 | tee packer-output.log
+            PACKER_EXIT_CODE=${PIPESTATUS[0]}
           else
             packer build \
               -var "build_timestamp=${{ steps.timestamp.outputs.value }}" \
-              talos_hcloud.pkr.hcl | tee packer-output.log
+              talos_hcloud.pkr.hcl 2>&1 | tee packer-output.log
+            PACKER_EXIT_CODE=${PIPESTATUS[0]}
           fi
-          exit ${PIPESTATUS[0]}
+          
+          # Check if build was successful
+          if [ $PACKER_EXIT_CODE -ne 0 ]; then
+            echo "::error::Packer build failed with exit code $PACKER_EXIT_CODE"
+            exit $PACKER_EXIT_CODE
+          fi
+          
+          # Verify artifacts were created
+          if grep -q "Builds finished but no artifacts were created" packer-output.log; then
+            echo "::error::Packer build completed but no artifacts were created"
+            exit 1
+          fi
 
       - name: Extract snapshot info
         if: success()

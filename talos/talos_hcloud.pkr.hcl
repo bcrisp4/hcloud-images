@@ -27,9 +27,9 @@ locals {
 
 source "hcloud" "talos" {
   rescue       = "linux64"
-  image        = "debian-12"
-  location     = "fsn1"
-  server_type  = "cx22"
+  image        = "debian-13"
+  location     = "ash"
+  server_type  = "cpx11"
   ssh_username = "root"
 
   snapshot_name = local.snapshot_name

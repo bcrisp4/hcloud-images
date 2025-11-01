@@ -1,0 +1,103 @@
+name: Packer Build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "talos/**"
+      - ".github/workflows/packer.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "talos/**"
+      - ".github/workflows/packer.yml"
+  workflow_dispatch:
+    inputs:
+      talos_version:
+        description: "Talos version to build (e.g., v1.6.0)"
+        required: false
+        type: string
+      force_build:
+        description: "Force build even on PR"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PACKER_VERSION: "1.10.0"
+
+jobs:
+  validate:
+    name: Validate Packer Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Initialize Packer
+        working-directory: talos
+        run: packer init talos_hcloud.pkr.hcl
+
+      - name: Format check
+        working-directory: talos
+        run: packer fmt -check talos_hcloud.pkr.hcl
+
+      - name: Validate
+        working-directory: talos
+        run: packer validate talos_hcloud.pkr.hcl
+
+  build:
+    name: Build Talos Image
+    runs-on: ubuntu-latest
+    needs: validate
+    # Only build on main branch pushes, manual triggers, or when force_build is true
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.inputs.force_build == 'true')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Initialize Packer
+        working-directory: talos
+        run: packer init talos_hcloud.pkr.hcl
+
+      - name: Build image
+        working-directory: talos
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          if [ -n "${{ inputs.talos_version }}" ]; then
+            packer build -var "talos_version=${{ inputs.talos_version }}" talos_hcloud.pkr.hcl
+          else
+            packer build talos_hcloud.pkr.hcl
+          fi
+
+      - name: Build summary
+        if: success()
+        run: |
+          echo "### ✅ Packer build successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Talos Version:** ${{ inputs.talos_version || 'default' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build failure
+        if: failure()
+        run: |
+          echo "### ❌ Packer build failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY

@@ -21,7 +21,7 @@ variable "build_timestamp" {
 }
 
 locals {
-  image         = "https://github.com/siderolabs/talos/releases/download/${var.talos_version}/hcloud-amd64.raw.xz"
+  image         = "https://github.com/siderolabs/talos/releases/download/${var.talos_version}/initramfs-amd64.xz"
   snapshot_name = var.build_timestamp != "" ? "talos-${var.talos_version}-${var.build_timestamp}" : "talos-${var.talos_version}"
 }
 

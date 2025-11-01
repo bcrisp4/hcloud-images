@@ -21,7 +21,7 @@ variable "build_timestamp" {
 }
 
 locals {
-  image         = "https://github.com/siderolabs/talos/releases/download/${var.talos_version}/initramfs-amd64.xz"
+  image         = "https://factory.talos.dev/image/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba/${var.talos_version}/hcloud-amd64.raw.xz"
   snapshot_name = var.build_timestamp != "" ? "talos-${var.talos_version}-${var.build_timestamp}" : "talos-${var.talos_version}"
 }
 
@@ -45,9 +45,9 @@ build {
 
   provisioner "shell" {
     inline = [
-      "apt-get install -y wget zstd",
+      "apt-get install -y wget",
       "wget -O /tmp/talos.raw.xz ${local.image}",
-      "unzstd --stdout /tmp/talos.raw.xz | dd of=/dev/sda && sync",
+      "xz -d -c /tmp/talos.raw.xz | dd of=/dev/sda && sync",
     ]
   }
 }

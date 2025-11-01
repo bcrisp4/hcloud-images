@@ -11,7 +11,7 @@ packer {
 
 variable "talos_version" {
   type    = string
-  default = "v1.6.0"
+  default = "v1.11.3"
 }
 
 variable "build_timestamp" {

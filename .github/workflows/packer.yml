@@ -51,6 +51,8 @@ jobs:
 
       - name: Validate
         working-directory: talos
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: packer validate talos_hcloud.pkr.hcl
 
   build:
